@@ -29,6 +29,6 @@ Ahora diseña tu juego bajo los siguientes criterios de diseño:
 
 En cada etapa del desarrollo presente el caso de uso y el diagrama de interacciones.
 Entregar:
-1- Informe con el paso a paso del experimento.
-2- Código disponible en plataformas colaborativas.
-3- Video presentando el código y la ejecución de cada etapa. Máx. 12 minutos.
+1. 1- Informe con el paso a paso del experimento.
+2. 2- Código disponible en plataformas colaborativas.
+3. 3- Video presentando el código y la ejecución de cada etapa. Máx. 12 minutos.
