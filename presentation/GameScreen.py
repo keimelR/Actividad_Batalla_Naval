@@ -1,7 +1,7 @@
 import pygame
 
 class GameScreen:
-    def __init__(self, SCREEN_HEIGHT, SCREEN_WIDHT, PLAYER_BOARD_MATRIX):
+    def __init__(self, SCREEN_HEIGHT, SCREEN_WIDHT, PLAYER_BOARD_MATRIX, is_client=False, client_or_server=None):
         # Dimensiones de la Ventana
         self.SCREEN_HEIGHT = SCREEN_HEIGHT
         self.SCREEN_WIDHT = SCREEN_WIDHT
@@ -11,6 +11,13 @@ class GameScreen:
         
         # Lista de Cuadriculas Atacadas
         self.attacked_grids: list[int] = []
+        
+        self.is_client = is_client
+        self.client_or_server = client_or_server  # Puede ser un objeto Client o None
+
+        # Conectar el callback si eres cliente
+        if self.is_client and self.client_or_server:
+            self.client_or_server.on_attack_received = self.on_attack_received
         
         # Colores
         self.COLOR_SKY_BLUE = (169, 230, 255)
@@ -80,6 +87,11 @@ class GameScreen:
             # Los ataques realizados se muestran en pantalla
             for coord_attack_x, coord_attack_y in self.attacked_grids:
                 pygame.draw.circle(screen, self.COLOR_RED_IMPERIAL, (coord_attack_x, coord_attack_y), 20)
+
+            # Dibuja los ataques recibidos del enemigo en tu propio tablero
+            if hasattr(self, 'enemy_attacks'):
+                for coord_attack_x, coord_attack_y in self.enemy_attacks:
+                    pygame.draw.circle(screen, self.COLOR_STONE, (coord_attack_x, coord_attack_y), 20)
 
             # Mostramos la posicion de los barcos del jugador (el enemigo no los ve)
             self.draw_player_ship(
@@ -207,8 +219,33 @@ class GameScreen:
             # Determinamos si la cuadricula a ocupar ya se encontraba en uso antiguamente, es decir, si ya habia sido ocupada.
             if attack_point not in [tuple(point) for point in self.attacked_grids]:
                 self.attacked_grids.append([center_row, center_col])
+
+                # --- INTEGRACIÓN CON RED ---
+                if self.is_client and self.client_or_server:
+                    resultado = self.client_or_server.play_turn(row, col)
+                    if resultado == 'win':
+                        print("¡Ganaste la partida!")
+                        pygame.quit()
+                        exit()
+                    elif resultado == 'lose':
+                        print("¡El servidor ha ganado!")
+                        pygame.quit()
+                        exit()
+                # Si eres el servidor, aquí podrías implementar la lógica para mostrar el ataque del cliente
             else:
                 print("Ya presionaste esta cuadricula")
         else:
             print("No cumple")
             
+    def on_attack_received(self, row, col):
+        # Marca la celda atacada en tu tablero (puedes usar un valor especial, por ejemplo "X")
+        # Aquí simplemente dibujaremos un círculo rojo en la celda atacada
+        cell_size = 40  # Usa el mismo valor que en start_game
+        player_board_origin = (50, 140)
+        center_x = player_board_origin[0] + col * cell_size + cell_size // 2
+        center_y = player_board_origin[1] + row * cell_size + cell_size // 2
+        # Guarda el ataque para dibujarlo en el render loop
+        if not hasattr(self, 'enemy_attacks'):
+            self.enemy_attacks = []
+        self.enemy_attacks.append((center_x, center_y))
+        print(f"¡Has sido atacado en ({row}, {col})!")

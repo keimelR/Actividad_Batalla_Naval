@@ -3,6 +3,10 @@ import pygame_gui
 import os
 import ipaddress
 
+from data.Server import Server
+from data.Client import Client
+import threading
+
 from presentation.GameScreen import GameScreen
 from model.Arsenal.Ships.Ship import Ship
 
@@ -12,9 +16,9 @@ class PreparationScreen:
         self.SCREEN_HEIGHT = SCREEN_HEIGHT
         self.SCREEN_WIDHT = SCREEN_WIDHT
         # Datos del cliente y servidor
-        self.port_client: str = ""
-        self.ip_address_client: str = ""
-        self.port_server: str = ""
+        self.port_client: str = "7777"
+        self.ip_address_client: str = "127.0.0.1"
+        self.port_server: str = "7777"
         
         # 2D array que almacena las posiciones de los barcos en el tablero
         self.player_board_matrix = [[None for _ in range(10)] for _ in range(10)]
@@ -137,23 +141,18 @@ class PreparationScreen:
 
                 # Si un boton es presionado
                 if event.type == pygame_gui.UI_BUTTON_PRESSED:
-                    # Determinamos la accion segun el boton presionado
-                    
-                    # En caso de ser el boton de servidor, tendria que ejecutar las acciones de un servidor
+                    # --- BOTÓN SERVIDOR ---
                     if event.ui_element == button_server:
                         if self.port_server and self.port_server.isnumeric():
                             print(f"Iniciando servidor en el puerto: {self.port_server}")
-                            
-                            running = False
-                            GameScreen(
-                                self.SCREEN_HEIGHT, 
-                                self.SCREEN_WIDHT,
-                                PLAYER_BOARD_MATRIX= self.player_board_matrix
-                            ).start_game()
+                            # Iniciar el servidor en un hilo para no bloquear la interfaz
+                            server = Server(port=int(self.port_server))
+                            threading.Thread(target=server.start, daemon=True).start()
+
                         else:
                             print("Error: Ingrese un puerto válido para el servidor.")
 
-                    # En caso de ser el boton de cliente, tendria que ejecutar las acciones de cliente
+                    # --- BOTÓN CLIENTE ---
                     elif event.ui_element == button_client:
                         is_ip_valid = False
                         try:
@@ -169,9 +168,22 @@ class PreparationScreen:
 
                         if self.port_client and self.port_client.isnumeric() and is_ip_valid:
                             print(f"Uniéndose al servidor en {self.ip_address_client}:{self.port_client}")
-
-                            # En caso de que apruebe las comprobacion, aqui ejecutara las acciones de cliente
-
+                            # Iniciar el cliente
+                            client = Client(
+                                host=self.ip_address_client,
+                                port=int(self.port_client),
+                                nombre="Jugador",
+                                board_matrix=self.player_board_matrix
+                            )
+                            client.connect()
+                            running = False
+                            GameScreen(
+                                self.SCREEN_HEIGHT, 
+                                self.SCREEN_WIDHT,
+                                PLAYER_BOARD_MATRIX=self.player_board_matrix,
+                                is_client=True,  # Nuevo parámetro
+                                client_or_server=client  # Pasa el cliente
+                            ).start_game()
                         else:
                             if not (self.port_client and self.port_client.isnumeric()):
                                 print("Error: Ingrese un puerto válido para el cliente.")

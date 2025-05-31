@@ -1,17 +1,13 @@
-from model.ConnectionSocket import ConnectionSocket
 import socket
+import threading
+import queue
 
-class ClientSocket(ConnectionSocket):
-    def __init__(
-        self, 
-        port = 7777, 
-        address = "localhost",
-        address_family: socket.AddressFamily = socket.AF_INET, 
-        type: socket.SocketKind = socket.SOCK_STREAM,
-        socket: socket.socket = None,
-    ):
-        super().__init__(port, address)
-        self.address_family = address_family
-        self.type = type
-        self.socket = socket 
-        
+class ClientSocket:
+    def __init__(self, host='localhost', port=12345, nombre="Anónimo"):
+        self.host = host
+        self.port = port
+        self.nombre = nombre
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.conectado = False
+        self.cola_entrada = queue.Queue()
+        self.cola_salida = queue.Queue()
