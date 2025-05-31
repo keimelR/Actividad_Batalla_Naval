@@ -1,8 +1,9 @@
 import pygame
 import sys
+from data.Client import Client
 
 class GameScreen:
-    def __init__(self, SCREEN_HEIGHT, SCREEN_WIDHT, PLAYER_BOARD_MATRIX, is_client=False, client_or_server=None):
+    def __init__(self, SCREEN_HEIGHT, SCREEN_WIDHT, PLAYER_BOARD_MATRIX, client: Client):
         self.SCREEN_HEIGHT = SCREEN_HEIGHT
         self.SCREEN_WIDHT = SCREEN_WIDHT
         self.player_board_matrix = PLAYER_BOARD_MATRIX
@@ -10,13 +11,14 @@ class GameScreen:
         self.attacked_grids: list[int] = []
         self.enemy_attacks = []
 
-        self.is_client = is_client
-        self.client_or_server = client_or_server
+        self.client = client
+        self.client.on_attack_received = self.on_attack_received
 
-        if self.is_client and self.client_or_server:
-            self.client_or_server.on_attack_received = self.on_attack_received
-
-        self.is_player_turn = self.is_client
+        # Controlar estado de partida
+        self.is_player_turn = self.client.my_turn
+        self.game_over = False
+        self.winner_text = ""
+        self.font_game_over = None
 
         # Colors
         self.COLOR_SKY_BLUE = (169, 230, 255)
@@ -25,10 +27,6 @@ class GameScreen:
         self.COLOR_STONE = (89, 120, 142)
         self.COLOR_BATTLESHIP = (131, 131, 128)
         
-        # Controlar estado de partida
-        self.game_over = False
-        self.winner_text = ""
-        self.font_game_over = None
 
     def start_game(self):
         pygame.init()
@@ -53,8 +51,13 @@ class GameScreen:
         player_board_origin = (50, 140)
         opponent_board_origin = (600, 140)
         
-        while running:
+        while running:            
             for event in pygame.event.get():
+                
+                if self.client.running is False:
+                    running = False
+                    break
+                
                 if event.type == pygame.QUIT:
                     running = False
                 if not self.game_over:
@@ -169,20 +172,15 @@ class GameScreen:
             if attack_point not in [tuple(point) for point in self.attacked_grids]:
                 self.attacked_grids.append([center_x, center_y])
 
-                if self.is_client and self.client_or_server:
-                    resultado = self.client_or_server.play_turn(row, col)
-                    # Resultado esperado: None, 'win' o 'lose'
-                    if resultado == 'win':
-                        self.game_over = True
-                        self.winner_text = "¡Ganaste la partida!"
-                        print(self.winner_text)
-                    elif resultado == 'lose':
-                        self.game_over = True
-                        self.winner_text = "¡El servidor ha ganado!"
-                        print(self.winner_text)
-                    else:
-                        self.is_player_turn = False
-                        print("Turno del enemigo.")
+                resultado = self.client.play_turn(row, col)
+                if resultado == 'win':
+                    self.game_over = True
+                    self.winner_text = "¡Ganaste la partida!"
+                    print(self.winner_text)
+                elif resultado == 'lose':
+                    self.game_over = True
+                    self.winner_text = "¡Has perdido la partida!"
+                    print(self.winner_text)
                 else:
                     self.is_player_turn = False
                     print("Turno del enemigo.")
