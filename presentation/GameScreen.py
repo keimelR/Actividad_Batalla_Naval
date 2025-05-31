@@ -73,12 +73,6 @@ class GameScreen:
             self.draw_board(screen, cell_size, *player_board_origin, text_column, text_row, columns, rows, regular_font)
             self.draw_board(screen, cell_size, *opponent_board_origin, text_column, text_row, columns, rows, regular_font)
 
-            for coord_attack_x, coord_attack_y in self.attacked_grids:
-                pygame.draw.circle(screen, self.COLOR_RED_IMPERIAL, (coord_attack_x, coord_attack_y), 20)
-
-            for coord_attack_x, coord_attack_y in self.enemy_attacks:
-                pygame.draw.circle(screen, self.COLOR_STONE, (coord_attack_x, coord_attack_y), 20)
-
             self.draw_player_ship(
                 screen = screen,
                 cell_size = cell_size,
@@ -87,6 +81,12 @@ class GameScreen:
                 columns = columns,
                 rows = rows
             )
+
+            for coord_attack_x, coord_attack_y in self.attacked_grids:
+                pygame.draw.circle(screen, self.COLOR_RED_IMPERIAL, (coord_attack_x, coord_attack_y), 20)
+
+            for coord_attack_x, coord_attack_y in self.enemy_attacks:
+                pygame.draw.circle(screen, self.COLOR_STONE, (coord_attack_x, coord_attack_y), 20)
             
             turno_text = "Tu turno" if self.is_player_turn else "Turno enemigo"
             pygame.display.set_caption(f"BattleShip - {turno_text}")
