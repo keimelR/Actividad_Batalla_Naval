@@ -20,7 +20,17 @@ class Server:
 
         client_a.sendall(pickle.dumps({"msg": "Comienza la partida, eres el jugador A"}))
         client_b.sendall(pickle.dumps({"msg": "Comienza la partida, eres el jugador B"}))
+        
+        # Recibe el tablero de cada cliente al inicio
+        player_boards = [None, None]
+        data = client_a.recv(4096)
+        msg = pickle.loads(data)
+        player_boards[0] = msg['board']
 
+        data = client_b.recv(4096)
+        msg = pickle.loads(data)
+        player_boards[1] = msg['board']
+        
         clients = [client_a, client_b]
         turn = 0  # 0 para A, 1 para B
 
@@ -57,28 +67,29 @@ class Server:
                 # Por ejemplo, verificar si coords es un ataque válido, si toca barco,
                 # si el jugador gana, etc.
                 # Por ahora simularemos resultado 'continue' para seguir el juego.
-
-                resultado = 'continue'  # Opciones: 'continue', 'win', 'lose'
+                
+                # Marcar el impacto en el tablero del oponente
+                row, col = coords
+                opponent = 1 - turn
+                hit = False
+                if player_boards[opponent][row][col] is not None:
+                    player_boards[opponent][row][col] = None  # Marcar como impactado
+                    hit = True
 
                 # Reenviar la jugada al oponente para que actualice su estado
-                clients[1 - turn].sendall(pickle.dumps({'attack': coords}))
-
-                # Enviar resultado al jugador que atacó
-                clients[turn].sendall(pickle.dumps({'result': resultado}))
-
-                if resultado == 'win':
-                    # Si gana, informar y cerrar juego
-                    clients[turn].sendall(pickle.dumps({'msg': '¡Ganaste la partida!'}))
-                    clients[1 - turn].sendall(pickle.dumps({'msg': '¡Has perdido la partida!'}))
+                clients[opponent].sendall(pickle.dumps({'attack': coords, 'hit': hit}))
+                      
+                # Verificar si quedan barcos
+                if not self.has_ships_left(player_boards[opponent]):
+                    clients[turn].sendall(pickle.dumps({'result': 'win'}))
+                    clients[opponent].sendall(pickle.dumps({'result': 'lose'}))
                     print(f"Jugador {turn + 1} ha ganado.")
                     break
-                elif resultado == 'lose':
-                    # Caso contrario, jugador pierde (opcional según lógica)
-                    print(f"Jugador {turn + 1} ha perdido (caso no común).")
-                    break
                 else:
-                    # Cambiar turno sólo si resultado es 'continue'
-                    turn = 1 - turn
+                    # Enviar resultado al atacante
+                    clients[turn].sendall(pickle.dumps({'result': 'continue', 'hit': hit}))
+                    # Cambiar turno
+                    turn = opponent
 
             except Exception as e:
                 print(f"Error: {e}")
@@ -92,3 +103,10 @@ class Server:
         client_b.close()
         self.server_socket.servidor.close()
         print("Servidor cerrado.")
+
+    def has_ships_left(self, board):
+        for row in board:
+            for cell in row:
+                if cell is not None:
+                    return True
+        return False
