@@ -5,10 +5,12 @@ import ipaddress
 
 from data.Server import Server
 from data.Client import Client
+from presentation.ServerScreen import ServerScreen
 import threading
 
 from presentation.GameScreen import GameScreen
 from model.Arsenal.Ships.Ship import Ship
+
 
 class PreparationScreen:
     def __init__(self, SCREEN_HEIGHT, SCREEN_WIDHT):
@@ -147,8 +149,9 @@ class PreparationScreen:
                             print(f"Iniciando servidor en el puerto: {self.port_server}")
                             # Iniciar el servidor en un hilo para no bloquear la interfaz
                             server = Server(port=int(self.port_server))
-                            threading.Thread(target=server.start, daemon=True).start()
-
+                            screen_server = ServerScreen(server)
+                            screen_server.start()      
+                            running = False                      
                         else:
                             print("Error: Ingrese un puerto válido para el servidor.")
 
@@ -177,13 +180,13 @@ class PreparationScreen:
                             )
                             client.connect()
                             running = False
-                            GameScreen(
+                            game_screen = GameScreen(
                                 self.SCREEN_HEIGHT, 
                                 self.SCREEN_WIDHT,
                                 PLAYER_BOARD_MATRIX=self.player_board_matrix,
-                                is_client=True,  # Nuevo parámetro
-                                client_or_server=client  # Pasa el cliente
-                            ).start_game()
+                                client= client
+                            )
+                            game_screen.start_game()
                         else:
                             if not (self.port_client and self.port_client.isnumeric()):
                                 print("Error: Ingrese un puerto válido para el cliente.")
