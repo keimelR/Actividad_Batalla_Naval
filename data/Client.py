@@ -22,6 +22,10 @@ class Client:
 
             print("Servidor dice:", bienvenida_msg["msg"])
 
+            # Enviar el tablero al servidor solo una vez al inicio
+            serializable_board = self.get_board_serializable()
+            self.client_socket.socket.sendall(pickle.dumps({'board': serializable_board}))
+
             # Detectar si este cliente es el jugador A
             if "jugador A" in bienvenida_msg["msg"]:
                 self.my_turn = True  # Jugador A inicia
@@ -46,15 +50,12 @@ class Client:
 
                 if 'msg' in mensaje:
                     print("Mensaje del servidor:", mensaje['msg'])
-
-                    # Activar turno si el servidor lo indica
                     if mensaje['msg'] == 'Es tu turno':
                         self.my_turn = True
-
-                    # Mensajes de fin de partida o desconexión
                     if 'ganaste' in mensaje['msg'].lower() or 'perdiste' in mensaje['msg'].lower():
                         print("Partida terminada.")
                         self.running = False
+                        self.disconnect()
                         break
 
                 elif 'attack' in mensaje:
@@ -67,8 +68,12 @@ class Client:
                 elif 'result' in mensaje:
                     resultado = mensaje['result']
                     print(f"Resultado de tu ataque: {resultado}")
-                    # Aquí podrías reaccionar al resultado, por ejemplo actualizar UI, tablero, etc.
-
+                    if resultado == 'win':
+                        print("¡Ganaste la partida!")
+                        self.running = False
+                    elif resultado == 'lose':
+                        print("Has perdido la partida.")
+                        self.running = False
             except Exception as e:
                 print(f"Error en recepción: {e}")
                 self.running = False
@@ -94,3 +99,9 @@ class Client:
         except Exception:
             pass
         self.client_socket.conectado = False
+
+    def get_board_serializable(self):
+        serial = []
+        for row in self.board_matrix:
+            serial.append([1 if cell is not None else None for cell in row])
+        return serial
