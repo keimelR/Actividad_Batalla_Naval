@@ -102,6 +102,7 @@ class Server:
         client_a.close()
         client_b.close()
         self.server_socket.servidor.close()
+        self.is_running = False
         print("Servidor cerrado.")
 
     def has_ships_left(self, board):
