@@ -117,6 +117,7 @@ class Server:
 
     def start(self):
         try:
+            self.server_socket.servidor.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             self.server_socket.servidor.bind((self.server_socket.host, self.server_socket.port))
             self.server_socket.servidor.listen(10)
             self._running_event.set()
@@ -125,6 +126,7 @@ class Server:
             print(f"Error al iniciar el servidor: {e}")
             return
 
+        
         threading.Thread(target=self.accept_player, daemon=True).start()
         threading.Thread(target=self.game_manager, daemon=True).start()
 
