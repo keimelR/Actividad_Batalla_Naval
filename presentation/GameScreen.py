@@ -12,7 +12,10 @@ class GameScreen:
         self.enemy_attacks = []
 
         self.client = client
+
+        # Conectar callbacks
         self.client.on_attack_received = self.on_attack_received
+        self.client.on_result_received = self.on_result_received
 
         # Controlar estado de partida
         self.is_player_turn = self.client.my_turn
@@ -32,7 +35,8 @@ class GameScreen:
 
         self.turno_message = ""  # Mensaje mostrado en pantalla
         self.turno_font = None   # Fuente para el mensaje de estado
-        
+
+        self.waiting_for_result = False  # Bloquea ataques hasta recibir resultado
 
     def start_game(self):
         pygame.init()
@@ -62,10 +66,6 @@ class GameScreen:
         
         while running:            
             for event in pygame.event.get():
-                
-                if self.client.running is False:
-                    running = False
-                    break
 
                 if event.type == pygame.QUIT:
                     running = False
@@ -75,11 +75,11 @@ class GameScreen:
                     if event.type == pygame.MOUSEBUTTONDOWN:
                         running = False
                 else:
-                    # Solo permite ataques si no ha terminado la partida
+                    # Solo permite ataques si no ha terminado la partida y no está esperando resultado
                     if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                         pos = pygame.mouse.get_pos()
                         self.attack(*pos, cell_size, *opponent_board_origin, columns, rows)
-
+                        
             screen.fill(self.COLOR_CLASSIC_WHITE)
 
             self.draw_title("Tu Flota", pygame.Rect(50, 60, 400, 40), bold_font, screen, self.COLOR_RED_IMPERIAL)
@@ -96,7 +96,12 @@ class GameScreen:
                 columns = columns,
                 rows = rows
             )
-
+            
+            # Si la partida terminó, mostrar mensaje
+            if self.game_over:
+                self.show_game_over(screen)
+                wait_for_click_after_game_over = True
+                
             for coord_attack_x, coord_attack_y in self.attacked_grids:
                 pygame.draw.circle(screen, self.COLOR_RED_IMPERIAL, (coord_attack_x, coord_attack_y), 20)
 
@@ -106,11 +111,6 @@ class GameScreen:
             turno_text = "Tu turno" if self.is_player_turn else "Turno enemigo"
             self.turno_message = turno_text
             pygame.display.set_caption(f"BattleShip - {turno_text}")
-
-            # Si la partida terminó, mostrar mensaje
-            if self.game_over:
-                self.show_game_over(screen)
-                wait_for_click_after_game_over = True
 
             # Mostrar mensajes
             if self.status_message:
@@ -186,9 +186,8 @@ class GameScreen:
                     )
                     pygame.draw.rect(screen, self.COLOR_BATTLESHIP, rect)
 
-
     def attack(self, origin_attack_x, origin_attack_y, cell_size, origin_x, origin_y, columns, rows):
-        if not self.is_player_turn or self.game_over:
+        if not self.is_player_turn or self.game_over or self.waiting_for_result:
             self.status_message = "No es tu turno para atacar."
             print("No es tu turno para atacar.")
             return
@@ -206,21 +205,8 @@ class GameScreen:
 
             if attack_point not in [tuple(point) for point in self.attacked_grids]:
                 self.attacked_grids.append([center_x, center_y])
-
-                resultado = self.client.play_turn(row, col)
-                if resultado == 'win':
-                    self.game_over = True
-                    self.winner_text = "¡Ganaste la partida!"
-                    self.status_message = self.winner_text
-                    print(self.winner_text)
-                elif resultado == 'lose':
-                    self.game_over = True
-                    self.winner_text = "¡Has perdido la partida!"
-                    self.status_message = self.winner_text
-                    print(self.winner_text)
-                else:
-                    self.is_player_turn = False
-                    
+                self.waiting_for_result = True  # Bloquea más ataques hasta recibir resultado
+                self.client.play_turn(row, col)
             else:
                 self.status_message = "Ya presionaste esta cuadricula"
                 print("Ya presionaste esta cuadricula")
@@ -243,3 +229,19 @@ class GameScreen:
 
         self.is_player_turn = True
         print("Es tu turno.")
+
+    def on_result_received(self, resultado):
+        self.waiting_for_result = False
+        print(f"Resultado recibido en GameScreen: {resultado}")
+        if resultado == 'win':
+            self.game_over = True
+            self.winner_text = "¡Ganaste la partida!"
+            self.status_message = self.winner_text
+            print(self.winner_text)
+        elif resultado == 'lose':
+            self.game_over = True
+            self.winner_text = "¡Has perdido la partida!"
+            self.status_message = self.winner_text
+            print(self.winner_text)
+        else:
+            self.is_player_turn = False
