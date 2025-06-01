@@ -37,8 +37,7 @@ class ServerScreen:
 
             screen.fill((30, 30, 30))
 
-            # Mostrar estado del servidor
-            if self.server.is_running and server_thread.is_alive():
+            if self.server.is_running:
                 status_text = font.render("El server está corriendo", True, (0, 255, 0))
             else:
                 status_text = font.render("Server cerrado", True, (255, 0, 0))
