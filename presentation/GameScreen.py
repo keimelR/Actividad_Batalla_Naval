@@ -8,8 +8,10 @@ class GameScreen:
         self.SCREEN_WIDTH = SCREEN_WIDTH
         self.player_board_matrix = PLAYER_BOARD_MATRIX
 
-        self.attacked_grids: list[tuple[int, int]] = []
+        self.attacked_grids: list[tuple[int, int, bool]] = []  # (x, y, hit)
         self.enemy_attacks: list[tuple[int, int]] = []
+
+        self.last_attack_coords = None
 
         self.client = client
 
@@ -89,8 +91,9 @@ class GameScreen:
             self.draw_player_ship(screen, cell_size, *player_board_origin, columns, rows)
 
             # Dibujar ataques realizados
-            for x, y in self.attacked_grids:
-                pygame.draw.circle(screen, self.COLOR_RED_IMPERIAL, (x, y), 20)
+            for x, y, hit in self.attacked_grids:
+                color = (0, 200, 0) if hit else self.COLOR_RED_IMPERIAL  # Verde si acierto, rojo si fallo
+                pygame.draw.circle(screen, color, (x, y), 20)
             for x, y in self.enemy_attacks:
                 pygame.draw.circle(screen, self.COLOR_STONE, (x, y), 20)
 
@@ -190,8 +193,8 @@ class GameScreen:
 
             attack_point = (center_x, center_y)
 
-            if attack_point not in self.attacked_grids:
-                self.attacked_grids.append(attack_point)
+            if attack_point not in [(x, y) for x, y, _ in self.attacked_grids]:
+                self.last_attack_coords = (center_x, center_y)
                 self.waiting_for_result = True
                 self.status_message = "Esperando resultado..."
                 self.client.play_turn(row, col)
@@ -217,17 +220,29 @@ class GameScreen:
 
     def on_result_received(self, resultado):
         self.waiting_for_result = False
-        if resultado == 'win':
+
+        # Si resultado es un dict, extrae los campos
+        if isinstance(resultado, dict):
+            result_str = resultado.get('result')
+            hit = resultado.get('hit', False)
+        else:
+            result_str = resultado
+            hit = False
+
+        if self.last_attack_coords:
+            self.attacked_grids.append((*self.last_attack_coords, hit))
+            self.last_attack_coords = None
+
+        if result_str == 'win':
             self.game_over = True
             self.winner_text = "¡Ganaste la partida!"
             self.status_message = self.winner_text
-        elif resultado == 'lose':
+        elif result_str == 'lose':
             self.game_over = True
             self.winner_text = "¡Has perdido la partida!"
             self.status_message = self.winner_text
         else:
-            # Resultado puede ser 'hit', 'miss', etc.
-            self.status_message = f"Resultado del ataque: {resultado}"
+            self.status_message = f"Resultado del ataque: {'Acierto' if hit else 'Fallo'}"
             self.is_player_turn = False
 
     def show_game_over(self, screen):

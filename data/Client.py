@@ -67,11 +67,10 @@ class Client:
                         self.on_attack_received(row, col)
 
                 elif 'result' in mensaje:
-                    resultado = mensaje['result']
                     if self.on_result_received:
-                        self.on_result_received(resultado)
-                    if resultado in ['win', 'lose']:
-                        print(f"Resultado del juego: {resultado}")
+                        self.on_result_received(mensaje)  
+                    if mensaje['result'] in ['win', 'lose']:
+                        print(f"Resultado del juego: {mensaje['result']}")
                         break
 
             except (EOFError, ConnectionResetError, socket.error) as e:

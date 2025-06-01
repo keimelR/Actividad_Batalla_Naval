@@ -88,8 +88,8 @@ class Server:
                         clients[opponent].sendall(pickle.dumps({'attack': coords, 'hit': hit}))
 
                         if not self.has_ships_left(player_boards[opponent]):
-                            clients[turn].sendall(pickle.dumps({'result': 'win'}))
-                            clients[opponent].sendall(pickle.dumps({'result': 'lose'}))
+                            clients[turn].sendall(pickle.dumps({'result': 'win', 'hit': hit}))
+                            clients[opponent].sendall(pickle.dumps({'result': 'lose', 'hit': hit}))
                             print(f"Jugador {turn + 1} ha ganado.")
                             break
                         else:
