@@ -94,7 +94,9 @@ class Server:
                         print(f"Jugador {turn + 1} ha ganado.")
                         break
                     else:
-                        clients[turn].sendall(pickle.dumps({'result': 'continue', 'hit': hit}))
+                        # Envía 'hit' o 'miss' explícitamente
+                        result_str = 'hit' if hit else 'miss'
+                        clients[turn].sendall(pickle.dumps({'result': 'continue', 'hit': hit, 'attack_result': result_str}))
                         turn = opponent
 
                 except Exception as e:

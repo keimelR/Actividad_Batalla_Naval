@@ -68,8 +68,14 @@ class Client:
 
                 elif 'result' in mensaje:
                     resultado = mensaje['result']
+                    # Extrae el resultado del ataque si está presente
+                    attack_result = mensaje.get('attack_result')
                     if self.on_result_received:
-                        self.on_result_received(resultado)
+                        # Si hay resultado de ataque, pásalo, si no, solo el resultado general
+                        if attack_result:
+                            self.on_result_received(attack_result)
+                        else:
+                            self.on_result_received(resultado)
                     if resultado in ['win', 'lose']:
                         print(f"Resultado del juego: {resultado}")
                         break

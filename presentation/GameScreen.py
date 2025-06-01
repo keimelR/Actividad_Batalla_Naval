@@ -8,7 +8,8 @@ class GameScreen:
         self.SCREEN_WIDTH = SCREEN_WIDTH
         self.player_board_matrix = PLAYER_BOARD_MATRIX
 
-        self.attacked_grids: list[tuple[int, int]] = []
+        # Cambia attacked_grids para guardar (x, y, resultado)
+        self.attacked_grids: list[tuple[int, int, str]] = []
         self.enemy_attacks: list[tuple[int, int]] = []
 
         self.client = client
@@ -30,6 +31,7 @@ class GameScreen:
         self.COLOR_STONE = (89, 120, 142)
         self.COLOR_BATTLESHIP = (131, 131, 128)
         self.COLOR_BLACK = (0, 0, 0)
+        self.COLOR_GREEN_HIT = (0, 200, 0)
 
         self.status_message = ""
         self.status_font = None
@@ -88,9 +90,10 @@ class GameScreen:
 
             self.draw_player_ship(screen, cell_size, *player_board_origin, columns, rows)
 
-            # Dibujar ataques realizados
-            for x, y in self.attacked_grids:
-                pygame.draw.circle(screen, self.COLOR_RED_IMPERIAL, (x, y), 20)
+            # Dibuja ataques realizados (usa color según resultado)
+            for x, y, resultado in self.attacked_grids:
+                color = self.COLOR_GREEN_HIT if resultado == "hit" else self.COLOR_RED_IMPERIAL
+                pygame.draw.circle(screen, color, (x, y), 20)
             for x, y in self.enemy_attacks:
                 pygame.draw.circle(screen, self.COLOR_STONE, (x, y), 20)
 
@@ -178,7 +181,6 @@ class GameScreen:
             self.status_message = "No es tu turno para atacar."
             return
         
-        # Comprobar si clic está dentro del tablero enemigo
         if (origin_x <= origin_attack_x <= origin_x + columns * cell_size and
             origin_y <= origin_attack_y <= origin_y + rows * cell_size):
 
@@ -188,12 +190,13 @@ class GameScreen:
             center_x = origin_x + col * cell_size + cell_size // 2
             center_y = origin_y + row * cell_size + cell_size // 2
 
-            attack_point = (center_x, center_y)
-
-            if attack_point not in self.attacked_grids:
-                self.attacked_grids.append(attack_point)
+            # Busca si ya atacaste esta casilla
+            if not any((x == center_x and y == center_y) for x, y, _ in self.attacked_grids):
+                # Guarda el ataque con resultado pendiente
+                self.attacked_grids.append((center_x, center_y, "pending"))
                 self.waiting_for_result = True
                 self.status_message = "Esperando resultado..."
+                self._last_attack_index = len(self.attacked_grids) - 1  # Guarda el índice del último ataque
                 self.client.play_turn(row, col)
             else:
                 self.status_message = "Ya atacaste esta casilla."
@@ -226,7 +229,11 @@ class GameScreen:
             self.winner_text = "¡Has perdido la partida!"
             self.status_message = self.winner_text
         else:
-            # Resultado puede ser 'hit', 'miss', etc.
+            # Actualiza el resultado del último ataque
+            if hasattr(self, '_last_attack_index'):
+                x, y, _ = self.attacked_grids[self._last_attack_index]
+                self.attacked_grids[self._last_attack_index] = (x, y, resultado)
+                del self._last_attack_index
             self.status_message = f"Resultado del ataque: {resultado}"
             self.is_player_turn = False
 
