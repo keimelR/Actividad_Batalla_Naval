@@ -10,6 +10,7 @@ class Client:
         self.enemy_attacks = set()
         self.my_turn = False
         self.running = True
+        self.on_result_received = None  # En __init__
         self.on_attack_received = None  # Callback para notificar ataque recibido
 
     def connect(self):
@@ -67,7 +68,8 @@ class Client:
 
                 elif 'result' in mensaje:
                     resultado = mensaje['result']
-                    print(f"Resultado de tu ataque: {resultado}")
+                    if self.on_result_received:
+                        self.on_result_received(resultado)
                     if resultado == 'win':
                         print("¡Ganaste la partida!")
                         self.running = False
